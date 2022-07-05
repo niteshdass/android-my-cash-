@@ -30,16 +30,16 @@ const ReadBudgetModal = () => {
     }, []);
     return (
         <>
-
-            <Fab
-                renderInPortal={false}
-                style={{ width: 50, height: 50, marginRight: 170 }}
-                icon={<Icon color="white" as={<AntDesign name="eye" />} size="sm" />}
-                colorScheme={useColorModeValue('blue', 'darkBlue')}
-                bg={useColorModeValue('primary.500', 'primary.400')}
-                onPress={() => setMontModal(true)}
-            />
-
+            <View style={{ marginTop: 0 }}>
+                <Fab
+                    renderInPortal={false}
+                    style={{ width: 40, height: 40, marginRight: 10 }}
+                    icon={<Icon color="white" as={<AntDesign name="eye" />} size="sm" />}
+                    colorScheme={useColorModeValue('blue', 'darkBlue')}
+                    bg={useColorModeValue('primary.500', 'primary.400')}
+                    onPress={() => setMontModal(true)}
+                />
+            </View>
             <Modal isOpen={monthModal} onClose={() => setMontModal(false)}>
                 <Modal.Content maxH="412">
                     <Modal.Header>

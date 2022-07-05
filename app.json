@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "animated-todo",
-    "slug": "animated-todo",
+    "name": "wallet",
+    "slug": "wallet",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/my-logo.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/app-loader.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#2b7fed"
     },
     "updates": {
       "fallbackToCacheTimeout": 0
@@ -24,7 +24,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "package": "com.bindaas.animatedtodo"
+      "package": "com.bindaas.wallet"
     },
     "web": {
       "favicon": "./assets/favicon.png"

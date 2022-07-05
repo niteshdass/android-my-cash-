@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react'
-import { Icon, VStack, useColorModeValue, Fab, View, Text, ScrollView, Heading } from 'native-base'
+import { Icon, VStack, useColorModeValue, Fab, Text, ScrollView, Heading } from 'native-base'
 import { AntDesign } from '@expo/vector-icons'
-import { Dimensions, AsyncStorage } from 'react-native';
+import { Dimensions, AsyncStorage, RefreshControl, StyleSheet, View } from 'react-native';
 import AnimatedColorBox from '../components/animated-color-box'
 import TaskList from '../components/task-list'
 import shortid from 'shortid'
@@ -11,35 +11,38 @@ import NavBar from '../components/navbar'
 import AddCashModal from '../components/modal/AddCashModal'
 import AddBudgetModal from '../components/modal/AddBudgetModal'
 import Signup from '../components/auth/Signup';
+import PiChart from '../components/piChart';
+import MonthlySummary from '../components/home/MonthlySummary';
 import {
-  LineChart,
   BarChart,
-  PieChart,
-  ProgressChart,
-  ContributionGraph,
-  StackedBarChart
-} from "react-native-chart-kit";
+  LineChart,
 
-var colorArray = ['#FF6633', '#FFB399', '#FF33FF', '#00B3E6', 
-		  '#E6B333', '#3366E6', '#999966', '#99FF99', '#B34D4D',
-		  '#80B300', '#809900', '#E6B3B3', '#6680B3', '#66991A', 
-		  '#FF99E6', '#CCFF1A', '#FF1A66', '#E6331A', '#33FFCC',
-		  '#66994D', '#B366CC', '#4D8000', '#B33300', '#CC80CC', 
-		  '#66664D', '#991AFF', '#E666FF', '#4DB3FF', '#1AB399',
-		  '#E666B3', '#33991A', '#CC9999', '#B3B31A', '#00E680', 
-		  '#4D8066', '#809980', '#E6FF80', '#1AFF33', '#999933',
-		  '#FF3380', '#CCCC00', '#66E64D', '#4D80CC', '#9900B3', 
-		  '#E64D66', '#4DB380', '#FF4D4D', '#99E6E6', '#6666FF'];
+} from "react-native-chart-kit";
+import colorArray from '../helper/color';
+import { ActivityIndicator } from 'react-native-paper';
 
 export default function MainScreen({ auth, setAuth }) {
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
-  const [loading, setLoading] = useState<Boolean>(false)
-  const [budgets, setBudgets] = useState([])
-  const [totalDebit, setTotalDebit] = useState([])
+  const [loading, setLoading] = useState<Boolean>(false);
+  const [totalMonthlyDebit, setDebit] = useState([]);
+  const [monthlyTarget, setMonthlyTarget] = useState({});
+  const [date, setDate] = useState();
+  const [totalMonthlyCredit, setCredit] = useState([]);
+  const [totalData, setTotalData] = useState({});
+  const [loadError, setError] = useState<Boolean>(false);
+  const [category, setCategory] = useState([])
+  const [refreshing, setRefreshing] = React.useState(false);
+  const [total, setTotal] = useState({});
+  const [monthlyTotal, setMonthlyTotal] = useState({})
+  const [totalDebit, setTotalDebit] = useState([]);
+  const [totalCredit, setTotalCredit] = useState([]);
+  const [totalDebitCredit, setTotalDebitCredit] = useState({})
+  const [user, setUser] = useState({});
   const prepareBudgetsdata = (data) => {
-    var flags = [], output = [], l = data.length, i;
+    var flags = [], output = [], credit = [], l = data.length, i;
+    let dTotal = 0, cTotal = 0;
     for (i = 0; i < l; i++) {
       if (data[i].budget_type === 'debit') {
+        dTotal = dTotal + data[i]?.amount;
         if (flags[data[i].purpose]) continue;
         flags[data[i].purpose] = true;
         const result = data.filter(budget => budget.purpose === data[i].purpose);
@@ -50,54 +53,190 @@ export default function MainScreen({ auth, setAuth }) {
           name: data[i].purpose, amount: sum, legendFontColor: colorArray[i],
           legendFontSize: 12, color: colorArray[i]
         });
+      } else {
+        cTotal = cTotal + data[i]?.amount;
+        if (flags[data[i].purpose]) continue;
+        flags[data[i].purpose] = true;
+        const result = data.filter(budget => budget.purpose === data[i].purpose);
+        const sum = result.reduce((accumulator, object) => {
+          return accumulator + object.amount;
+        }, 0);
+        credit.push({
+          name: data[i].purpose, amount: sum, legendFontColor: colorArray[i],
+          legendFontSize: 12, color: colorArray[i]
+        });
       }
     }
     setTotalDebit(output);
+    setTotal({ cTotal, dTotal })
+    setTotalCredit(credit);
+    setTotalDebitCredit({ labels: ['Earn', 'Cost', 'Save'], datasets: [{ data: [cTotal, dTotal, cTotal - dTotal] }] })
   }
 
-  const loadBudgets = async () => {
+  const loadTotalBudgetDtat = async () => {
     setLoading(true);
     const d = new Date();
-    let month = d.getMonth()
-    await axios.get('https://nitesh-cash-api.herokuapp.com/budget/')
+    let user_data = await AsyncStorage.getItem('auth');
+    user_data = JSON.parse(user_data);
+    await axios.get(`https://my-cash-app.herokuapp.com/budget/${user_data?.user?._id}`)
       .then(async function (response) {
         prepareBudgetsdata(response.data.reverse());
       }).catch(function (error) {
-        // handle error
+        setError(true);
         setLoading(false);
       })
       .then(function () {
-        // always executed
         setLoading(false);
       });
   }
 
   const todo = () => 'todo';
   const getAuthUser = async () => {
-        try {
-        const value = await AsyncStorage.getItem('auth');
-        if (value !== null) {
-          // We have data!!
-          console.log(value)
-          setAuth(true);
-        }
-      } catch (error) {
-        // Error retrieving data
+    setLoading(true);
+    try {
+      const value = await AsyncStorage.getItem('auth');
+      if (value !== null) {
+        // We have data!!
+        let data = JSON.parse(value);
+        setUser(data?.user);
+        setAuth(true);
+        setLoading(false);
       }
+    } catch (error) {
+      // Error retrieving data
+    }
   }
   const logOut = async () => {
     try {
-      const value = await AsyncStorage.removeItem('auth');
-      console.log(value);
+      await AsyncStorage.removeItem('auth');
       setAuth(false);
 
     } catch (error) {
       // Error retrieving data
     }
   }
-  useEffect(() => {
+  const getCateGory = async () => {
+    const user_data = await AsyncStorage.getItem('auth');
+    let users = JSON.parse(user_data);
+    let _id = users?.user?._id;
+    await axios.get(`https://my-cash-app.herokuapp.com/category/${_id}`)
+      .then(async function (response) {
+        response?.data && (
+          setCategory(response?.data)
+        )
+      }).catch(function (error) {
+        // handle error
+        setError(true);
+      })
+      .then(function () {
+        // always executed
+      });
+  };
+
+  const preparedata = (data) => {
+    var flags = [], output = [], credit = [], l = data.length, i;
+    let dTotal = 0, cTotal = 0;
+
+    for (i = 0; i < l; i++) {
+      if (data[i].budget_type === 'debit') {
+        dTotal = dTotal + data[i].amount;
+        if (flags[data[i].purpose]) continue;
+        flags[data[i].purpose] = true;
+        const result = data.filter(budget => budget.purpose === data[i].purpose);
+        const sum = result.reduce((accumulator, object) => {
+          return accumulator + object.amount;
+        }, 0);
+        output.push({
+          name: data[i].purpose, amount: sum, legendFontColor: colorArray[i],
+          legendFontSize: 12, color: colorArray[i]
+        });
+      } else {
+        cTotal = cTotal + data[i].amount;
+        if (flags[data[i].purpose]) continue;
+        flags[data[i].purpose] = true;
+        const result = data.filter(budget => budget.purpose === data[i].purpose);
+        const sum = result.reduce((accumulator, object) => {
+          return accumulator + object.amount;
+        }, 0);
+        credit.push({
+          name: data[i].purpose, amount: sum, legendFontColor: colorArray[i],
+          legendFontSize: 12, color: colorArray[i]
+        });
+      }
+    }
+    setDebit(output);
+    setCredit(credit);
+    setMonthlyTotal({ cTotal, dTotal });
+    setTotalData({ labels: ['Earn', 'Cost', 'Save'], datasets: [{ data: [cTotal, dTotal, cTotal - dTotal] }] })
+
+  }
+
+  const loadBudgets = async () => {
+    const d = new Date();
+    setDate(d);
+    let year = d.getFullYear();
+    let month = d.getMonth() + 1;
+    const user_data = await AsyncStorage.getItem('auth');
+    // We have data!! month/${data?.user?._id}/${month}/${year}
+    let data = JSON.parse(user_data);
+    await axios.get(`https://my-cash-app.herokuapp.com/budget/month/${data?.user?._id}/${month}/${year}`)
+      .then(async function (response) {
+        preparedata(response.data.reverse());
+      }).catch(function (error) {
+        // handle error
+      })
+      .then(function () {
+        // always executed
+      });
+  }
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
     getAuthUser()
+    loadTotalBudgetDtat();
+    getCateGory();
+    getMonthTarget();
+    loadBudgets().then(() => setRefreshing(false));
+    
+  }, []);
+
+  const getMonthTarget = async () => {
+    const d = new Date();
+    // let year = d.getFullYear();
+    let month = d.getMonth() + 1;
+    // const user_data = await AsyncStorage.getItem('auth'); 
+    // We have data!!
+    // let data = JSON.parse(user_data);
+    await axios.get(`https://my-cash-app.herokuapp.com/target/`)
+      .then(async function (response) {
+        let totalTarget = 0;
+        let current_total = 0;
+        response?.data?.map((item) => {
+          totalTarget = totalTarget + item?.target_ammount;
+          if (item?.month == month) {
+            current_total = item?.target_ammount;
+          }
+        })
+        setMonthlyTarget({ totalTarget, current_total })
+      }).catch(function (error) {
+        // handle error
+      })
+      .then(function () {
+        // always executed
+      });
+  }
+
+
+  useEffect(() => {
+    const controller = new AbortController();
+    getAuthUser()
+    loadTotalBudgetDtat();
+    getCateGory();
     loadBudgets();
+    getMonthTarget();
+    return () => {
+      controller.abort();
+    }
   }, [])
   return (
     <AnimatedColorBox
@@ -107,94 +246,118 @@ export default function MainScreen({ auth, setAuth }) {
     >
       {
         auth ? <>
-           <Masthead
-        title="What's up, Bindaas!"
-        image={require('../assets/masthead.png')}
-      >
-        <NavBar />
-      </Masthead>
-      <VStack
-        flex={1}
-        space={1}
-        bg={useColorModeValue('warmGray.50', 'primary.900')}
-        mt="-20px"
-        borderTopLeftRadius="20px"
-        borderTopRightRadius="20px"
-        pt="20px"
-      >
-        <ScrollView>
-        <Heading>Total debit summary</Heading>
-        <PieChart
-          data={totalDebit}
-          width={400}
-          height={200}
-          chartConfig={{
-            backgroundColor: "#e26a00",
-            backgroundGradientFrom: "#fb8c00",
-            backgroundGradientTo: "#ffa726",
-            decimalPlaces: 1, // optional, defaults to 2dp
-            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-          }} accessor={"amount"}
-          backgroundColor={"transparent"}
-          absolute
-        />
-        <LineChart
-          data={{
-            labels: ["January", "February", "March", "April", "May", "June"],
-            datasets: [
-              {
-                data: [
-                  100, 200, 100, 400, 300, 500
-                ]
-              }
-            ]
-          }}
-          width={Dimensions.get("window").width} // from react-native
-          height={200}
-          yAxisLabel="$"
-          yAxisSuffix="k"
-          yAxisInterval={1} // optional, defaults to 1
-          chartConfig={{
-            backgroundColor: "#fcfc",
-            backgroundGradientFrom: "#fcfc",
-            backgroundGradientTo: "red",
-            decimalPlaces: 2, // optional, defaults to 2dp
-            color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-            labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-            style: {
-              borderRadius: 16
-            },
-            propsForDots: {
-              r: "6",
-              strokeWidth: "2",
-              stroke: "#ffa726"
-            }
-          }}
-          bezier
-          style={{
-            marginVertical: 8,
-            borderRadius: 16,
-            margin: 20
-          }}
-        />
-        </ScrollView>
-      </VStack>
-      <AddCashModal fetchData={todo} />
-        </> :    <Signup callBack= {setAuth} />
-      }
-  
-      <AddBudgetModal />
+          <Masthead
+            title="What's up, Bindaas!"
+            image={require('../assets/masthead.png')}
+          >
+            <NavBar />
+          </Masthead>
+          {
+            loading ? <ActivityIndicator style={{ marginTop: 200 }} size="large" color="#2b7fed" />
+              : <>
+                {
+                  loadError ? <Text>Something went wrong {error}</Text> :
+                  <>
+                  <VStack
+                  flex={1}
+                  space={1}
+                  bg={useColorModeValue('warmGray.50', 'primary.900')}
+                  mt="-40px"
+                  borderTopLeftRadius="20px"
+                  borderTopRightRadius="20px"
+                  pt="0px"
+                >
+                  <ScrollView
+                    contentContainerStyle={styles.scrollView}
+                    refreshControl={
+                      <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={onRefresh}
+                      />
+                    }
+                  >
+                    <MonthlySummary
+                      yearlyData={total}
+                      total={monthlyTotal}
+                      totalMonthlyDebit={totalMonthlyDebit}
+                      totalMonthlyCredit={totalMonthlyCredit}
+                      totalData={totalData}
+                      monthlyTarget={monthlyTarget}
+                    />
+                    <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
 
-      <Fab
-                renderInPortal={false}
-                style={{ width: 50, height: 50, marginRight: 10 }}
-                icon={<Icon color="white" as={<AntDesign name="logout" />} size="sm" />}
-                colorScheme={useColorModeValue('blue', 'darkBlue')}
-                bg={useColorModeValue('blue.500', 'blue.400')}
-                onPress={() => logOut(true)}
-            />
+                      <Heading style={{ paddingLeft: 20, fontSize: 18, paddingTop: 20 }}>Total Expenses summary</Heading>
+                      <PiChart totalDebit={totalDebit} />
+                    </View>
+                    <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
+
+                      <Heading style={{ paddingLeft: 20, fontSize: 18 }}>Monthly Income Expenses Savings</Heading>
+                      {
+                        totalDebitCredit?.labels?.length && (
+                          <BarChart
+                            data={totalDebitCredit}
+                            width={370} // from react-native
+                            height={200}
+                            yAxisLabel="k"
+                            horizontalLabelRotation={-10}
+                            yAxisSuffix="tk"
+                            fromZero={true}
+                            showValuesOnTopOfBars={true}
+                            yAxisInterval={1} // optional, defaults to 1
+                            chartConfig={{
+                              backgroundGradientFrom: "#e9f3f5",
+                              backgroundGradientTo: "#e9f3f5",
+                              decimalPlaces: 2, // optional, defaults to 2dp
+                              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                              style: {
+                                paddingLeft: 10
+                              },
+                              propsForDots: {
+                                r: "6",
+                                strokeWidth: "2",
+                                stroke: "#fcfcfc"
+                              }
+                            }}
+                            bezier
+                            style={{
+                              marginTop: 30,
+                              borderRadius: 6,
+                              paddingLeft: 3
+                            }}
+                          />
+                        )
+                      }
+                    </View>
+                  </ScrollView>
+                </VStack>
+                <View style={{ backgroundColor: '#0b68e0', width: 400, height: 50 }}>
+                  <AddCashModal fetchData={todo} category={category} />
+                  <AddBudgetModal />
+
+                  <View>
+                    <Fab
+                      renderInPortal={false}
+                      style={{ width: 40, height: 40, marginRight: 10 }}
+                      icon={<Icon color="white" as={<AntDesign name="logout" />} size="sm" />}
+                      colorScheme={useColorModeValue('blue', 'darkBlue')}
+                      bg={useColorModeValue('blue.500', 'blue.400')}
+                      onPress={() => logOut(true)}
+                    />
+                  </View>
+                </View>
+                  </>
+                }
+              </>
+          }
+
+        </> : <Signup callBack={setAuth} />
+      }
 
     </AnimatedColorBox>
   )
 }
+
+const styles = StyleSheet.create({
+
+});

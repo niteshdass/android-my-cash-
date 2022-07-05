@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
     ScrollView,
     VStack,
@@ -12,57 +12,73 @@ import {
     IconButton
 } from 'native-base';
 import { AntDesign } from '@expo/vector-icons'
+import axios from 'axios';
+import { AsyncStorage } from 'react-native';
 
 
 const AddBudgetPurpose = () => {
-    const instState = [{
-        title: "Code",
-        isCompleted: true
-    }, {
-        title: "Meeting with team at 9",
-        isCompleted: false
-    }, {
-        title: "Check Emails",
-        isCompleted: false
-    }, {
-        title: "Write an article",
-        isCompleted: false
-    }];
-    const [list, setList] = React.useState(instState);
+    const instState = [];
+    const [list, setList] = React.useState([]);
     const [inputValue, setInputValue] = React.useState("");
     // const toast = useToast();
 
-    const addItem = title => {
+    const addItem = async title => {
         if (title === "") {
-            // toast.show({
-            //     title: "Please Enter Text",
-            //     status: "warning"
-            // });
             return;
         }
 
-        setList(prevList => {
-            return [...prevList, {
-                title: title,
-                isCompleted: false
-            }];
-        });
+        const user_data = await AsyncStorage.getItem('auth');
+        let users = JSON.parse(user_data);
+        const data = {
+            name: title.toLowerCase(), slug: 'cash', user_id: users?.user?._id
+        }
+        console.log(data);
+        const result = await axios.post("https://my-cash-app.herokuapp.com/category", data);
+        if (result) {
+            console.log(title, result?.data?.user?._id)
+            setList(prevList => {
+                return [...prevList, {
+                    name: title,
+                    id: result?.data?.user?._id
+                }];
+            });
+        }
+
     };
 
-    const handleDelete = index => {
-        setList(prevList => {
-            const temp = prevList.filter((_, itemI) => itemI !== index);
-            return temp;
-        });
+    const handleDelete = async (index, item) => {
+        console.log(index, item)
+       let res = await axios.delete(`https://my-cash-app.herokuapp.com/category/${item?._id}`);
+        if(res) {
+            setList(prevList => {
+                const temp = prevList.filter((_, itemI) => itemI !== index);
+                return temp;
+            });
+        }
     };
 
-    const handleStatusChange = index => {
-        setList(prevList => {
-            const newList = [...prevList];
-            newList[index].isCompleted = !newList[index].isCompleted;
-            return newList;
-        });
+    const getCateGory = async () => {
+        const user_data = await AsyncStorage.getItem('auth');
+        let users = JSON.parse(user_data);
+        let _id = users?.user?._id;
+        await axios.get(`https://my-cash-app.herokuapp.com/category/${_id}`)
+            .then(async function (response) {
+                console.log(response?.data)
+                response?.data && (
+                    setList(response?.data)
+                )
+            }).catch(function (error) {
+                // handle error
+                console.log(error);
+            })
+            .then(function () {
+                // always executed
+                console.log('jjj')
+            });
     };
+    useEffect(() => {
+        getCateGory()
+    }, [])
     return (
         <ScrollView>
             <Center w="100%">
@@ -82,10 +98,10 @@ const AddBudgetPurpose = () => {
                                     color: "coolGray.800"
                                 }} _dark={{
                                     color: "coolGray.50"
-                                }} onPress={() => handleStatusChange(itemI)}>
-                                    {item.title}
+                                }}>
+                                    {item.name}
                                 </Text>
-                                <IconButton size="sm" colorScheme="trueGray" icon={<Icon color="red" as={<AntDesign name="minus" />} size="sm" />} onPress={() => handleDelete(itemI)} />
+                                <IconButton size="sm" colorScheme="trueGray" icon={<Icon color="red" as={<AntDesign name="minus" />} size="sm" />} onPress={() => handleDelete(itemI, item)} />
                             </HStack>)}
                         </VStack>
                     </VStack>
