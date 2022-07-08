@@ -15,6 +15,8 @@ const Input = ({
   iconName,
   error,
   password,
+  returnKeyType="next",
+  keyboardType = 'text',
   onFocus = () => {},
   ...props
 }) => {
@@ -49,6 +51,7 @@ const Input = ({
           secureTextEntry={hidePassword}
           style={{color: COLORS.darkBlue, flex: 1}}
           {...props}
+          keyboardType={keyboardType}
         />
         {password && (
           <Icon

@@ -1,75 +1,62 @@
 import React, { useState, useEffect } from 'react'
 import {
-  Box,
-  VStack,
-  Icon,
-  Image,
-  useColorModeValue,
-  View
+  useColorModeValue
 } from 'native-base'
-import { Feather } from '@expo/vector-icons'
 import AnimatedColorBox from '../components/animated-color-box'
 import Navbar from '../components/navbar'
 import Masthead from '../components/masthead'
-import LinkButton from '../components/link-button'
-import { RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text } from 'react-native';
+import { View, useWindowDimensions, StyleSheet, Text, Dimensions } from 'react-native';
+import { Heading } from 'native-base';
+import {
+  LineChart,
+  BarChart,
+} from "react-native-chart-kit";
+import IconM from 'react-native-vector-icons/MaterialCommunityIcons';
 
-const wait = (timeout) => {
-  return new Promise(resolve => setTimeout(resolve, timeout));
-}
 
-const AboutScreen = () => {
-  const [refreshing, setRefreshing] = React.useState(false);
+const AboutScreen = ({ getAllMonthDabitTotal, title }) => {
+  const [auth, setAuth] = useState(false);
 
-  const onRefresh = React.useCallback(() => {
-    setRefreshing(true);
-    console.log('hittt')
-    wait(2000).then(() => setRefreshing(false));
-  }, []);
+
   return (
-    <AnimatedColorBox
-      flex={1}
-      bg={useColorModeValue('warmGray.50', 'warmGray.900')}
-      w="full"
-    >
-      <Masthead
-        title="Manage your budget"
-        image={require('../assets/about-masthead.png')}
-      >
-        <Navbar />
-      </Masthead>
-        <ScrollView
-          contentContainerStyle={styles.scrollView}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-            />
+    <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
+      <Heading style={{ paddingLeft: 20, fontSize: 18, paddingTop: 20 }}>
+        <IconM
+          name={'decagram'}
+          style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
+        /> {title}
+      </Heading>
+      <BarChart
+        data={getAllMonthDabitTotal}
+        width={Dimensions.get("window").width} // from react-native
+        height={220}
+        yAxisLabel="$"
+        yAxisSuffix="k"
+        fromZero={true}
+        showValuesOnTopOfBars={true}
+        yAxisInterval={1} // optional, defaults to 1
+        chartConfig={{
+          backgroundGradientFrom: "#e9f3f5",
+          backgroundGradientTo: "#e9f3f5",
+          decimalPlaces: 2, // optional, defaults to 2dp
+          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          style: {
+            paddingLeft: 10
+          },
+          propsForDots: {
+            r: "6",
+            strokeWidth: "2",
+            stroke: "#fcfcfc"
           }
-        >
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl ggg</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl indicator</Text>
-          <Text>Pull down to see RefreshControl hhh</Text>
-
-
-        </ScrollView>
-    </AnimatedColorBox>
+        }}
+        bezier
+        style={{
+          marginVertical: 11,
+          borderRadius: 16
+        }}
+      />
+    </View>
   )
 }
 

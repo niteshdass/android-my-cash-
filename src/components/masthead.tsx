@@ -25,10 +25,10 @@ const Masthead = ({ title, image, children }: Props) => {
       {children}
       <Box flex={1} />
       <Heading style={{ paddingBottom: 220, marginTop: -70 }} color="white" p={6} size="xl">
-        {title} dd
+        {title}
       </Heading>
     </VStack>
   )
 }
-
+    
 export default Masthead

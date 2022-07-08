@@ -1,7 +1,7 @@
 import React, { useCallback, useState, useEffect } from 'react'
 import { Icon, VStack, useColorModeValue, Fab, Text, ScrollView, Heading } from 'native-base'
 import { AntDesign } from '@expo/vector-icons'
-import { Dimensions, AsyncStorage, RefreshControl, StyleSheet, View } from 'react-native';
+import { Dimensions, AsyncStorage, RefreshControl, StyleSheet, View, useWindowDimensions } from 'react-native';
 import AnimatedColorBox from '../components/animated-color-box'
 import TaskList from '../components/task-list'
 import shortid from 'shortid'
@@ -13,14 +13,18 @@ import AddBudgetModal from '../components/modal/AddBudgetModal'
 import Signup from '../components/auth/Signup';
 import PiChart from '../components/piChart';
 import MonthlySummary from '../components/home/MonthlySummary';
+import IconM from 'react-native-vector-icons/MaterialCommunityIcons';
+import Loan from './about-screen';
+import ListItem from '../components/List';
 import {
   BarChart,
   LineChart,
 
 } from "react-native-chart-kit";
 import colorArray from '../helper/color';
-import { ActivityIndicator } from 'react-native-paper';
-
+import { ActivityIndicator, BottomNavigation } from 'react-native-paper';
+import { TabView, SceneMap } from 'react-native-tab-view';
+const months = ["January", "February", "March", "April", "May", "June", "July", "August", "Sepetember", "October", "November", "December"]
 export default function MainScreen({ auth, setAuth }) {
   const [loading, setLoading] = useState<Boolean>(false);
   const [totalMonthlyDebit, setDebit] = useState([]);
@@ -37,7 +41,12 @@ export default function MainScreen({ auth, setAuth }) {
   const [totalCredit, setTotalCredit] = useState([]);
   const [totalDebitCredit, setTotalDebitCredit] = useState({})
   const [user, setUser] = useState({});
+  const [totalBudgetData, setTotalBudgetData] = useState([]);
+  const [getAllMonthDabitTotal, setAllMonthDebitTotal] = useState({});
+  const [allLoanData, setTotalLoanData] = useState({});
+  const [loanData, setLoanData] = useState([]);
   const prepareBudgetsdata = (data) => {
+    setTotalBudgetData(data);
     var flags = [], output = [], credit = [], l = data.length, i;
     let dTotal = 0, cTotal = 0;
     for (i = 0; i < l; i++) {
@@ -69,6 +78,7 @@ export default function MainScreen({ auth, setAuth }) {
     }
     setTotalDebit(output);
     setTotal({ cTotal, dTotal })
+
     setTotalCredit(credit);
     setTotalDebitCredit({ labels: ['Earn', 'Cost', 'Save'], datasets: [{ data: [cTotal, dTotal, cTotal - dTotal] }] })
   }
@@ -81,6 +91,7 @@ export default function MainScreen({ auth, setAuth }) {
     await axios.get(`https://my-cash-app.herokuapp.com/budget/${user_data?.user?._id}`)
       .then(async function (response) {
         prepareBudgetsdata(response.data.reverse());
+        getEachMonthCostTotal(response.data);
       }).catch(function (error) {
         setError(true);
         setLoading(false);
@@ -100,7 +111,6 @@ export default function MainScreen({ auth, setAuth }) {
         let data = JSON.parse(value);
         setUser(data?.user);
         setAuth(true);
-        setLoading(false);
       }
     } catch (error) {
       // Error retrieving data
@@ -171,6 +181,38 @@ export default function MainScreen({ auth, setAuth }) {
 
   }
 
+  const getEachMonthCostTotal = (data) => {
+    var flags = [], output = [], credit = [], l = data.length, i;
+    var localMonths = [];
+    var localTotals = [];
+
+    for (i = 0; i < l; i++) {
+      if (data[i].budget_type === 'debit') {
+        if (flags[data[i].month]) continue;
+        flags[data[i].month] = true;
+        const result = data.filter(budget => budget.month === data[i].month && budget?.budget_type === 'debit');
+        const sum = result.reduce((accumulator, object) => {
+          return accumulator + object.amount;
+        }, 0);
+        // output.push({
+        //   month: months[data[i].month - 1],
+        //   total: sum
+        // });
+        localMonths.push(months[data[i].month - 1]);
+        localTotals.push(sum);
+
+      }
+    }
+    setAllMonthDebitTotal({
+      labels: localMonths,
+      datasets: [
+        {
+          data: localTotals
+        }
+      ]
+    })
+  }
+
   const loadBudgets = async () => {
     const d = new Date();
     setDate(d);
@@ -190,14 +232,58 @@ export default function MainScreen({ auth, setAuth }) {
       });
   }
 
+  const prepareLoanData = (data) => {
+    var flags = [], output = [], credit = [], l = data.length, i;
+    var localMonths = [];
+    var localTotals = [];
+    var localLoanDtat = [];
+
+    for (i = 0; i < l; i++) {
+      data[i].id = data[i]?._id;
+      localLoanDtat.push(data[i]);
+        if (flags[data[i].loan_type]) continue;
+          flags[data[i].loan_type] = true;
+          const result = data.filter(budget => budget.loan_type === data[i].loan_type);
+          const sum = result.reduce((accumulator, object) => {
+            return accumulator + object.amount;
+          }, 0);  
+        localMonths.push(data[i].loan_type);
+        localTotals.push(sum);
+      }
+      setLoanData(localLoanDtat);
+    setTotalLoanData({
+      labels: localMonths,
+      datasets: [
+        {
+          data: localTotals
+        }
+      ]
+    })
+  }
+
+  const getLoan = async () => {
+    const user_data = await AsyncStorage.getItem('auth');
+    let data = JSON.parse(user_data);
+    await axios.get(`https://my-cash-app.herokuapp.com/loan`)
+      .then(async function (response) {
+        prepareLoanData(response.data.reverse());
+      }).catch(function (error) {
+        // handle error
+      })
+      .then(function () {
+        // always executed
+      });
+  }
+
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     getAuthUser()
     loadTotalBudgetDtat();
     getCateGory();
+    getLoan();
     getMonthTarget();
     loadBudgets().then(() => setRefreshing(false));
-    
+
   }, []);
 
   const getMonthTarget = async () => {
@@ -232,12 +318,133 @@ export default function MainScreen({ auth, setAuth }) {
     getAuthUser()
     loadTotalBudgetDtat();
     getCateGory();
+    getLoan();
     loadBudgets();
     getMonthTarget();
     return () => {
       controller.abort();
     }
   }, [])
+  const monthySummary = () => {
+    return (
+      <ScrollView
+        contentContainerStyle={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        }
+      >
+        <MonthlySummary
+          yearlyData={total}
+          total={monthlyTotal}
+          totalMonthlyDebit={totalMonthlyDebit}
+          totalMonthlyCredit={totalMonthlyCredit}
+          totalData={totalData}
+          monthlyTarget={monthlyTarget}
+        />
+      </ScrollView>
+    )
+  }
+  const yearlySummary = () => {
+    return (
+      <ScrollView
+        contentContainerStyle={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        }
+      >
+        <Loan getAllMonthDabitTotal={getAllMonthDabitTotal} title="Each month expenses"  />
+
+        <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
+
+          <Heading style={{ paddingLeft: 20, fontSize: 18, paddingTop: 20 }}>
+            <IconM
+              name={'decagram'}
+              style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
+            /> Expenses summary {total?.dTotal} <IconM
+              name={'currency-bdt'}
+              style={{ color: '#7978B5', fontSize: 22, marginRight: 10 }}
+            />
+          </Heading>
+          <PiChart totalDebit={totalDebit} />
+        </View>
+        <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
+
+          <Heading style={{ paddingLeft: 20, fontSize: 18 }}>
+            <IconM
+              name={'decagram'}
+              style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
+            /> Monthly Income Expenses Savings
+          </Heading>
+          {
+            totalDebitCredit?.labels?.length && (
+              <BarChart
+                data={totalDebitCredit}
+                width={370} // from react-native
+                height={200}
+                yAxisLabel="k"
+                horizontalLabelRotation={-10}
+                yAxisSuffix="tk"
+                fromZero={true}
+                showValuesOnTopOfBars={true}
+                yAxisInterval={1} // optional, defaults to 1
+                chartConfig={{
+                  backgroundGradientFrom: "#e9f3f5",
+                  backgroundGradientTo: "#e9f3f5",
+                  decimalPlaces: 2, // optional, defaults to 2dp
+                  color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                  style: {
+                    paddingLeft: 10
+                  },
+                  propsForDots: {
+                    r: "6",
+                    strokeWidth: "2",
+                    stroke: "#fcfcfc"
+                  }
+                }}
+                bezier
+                style={{
+                  marginTop: 30,
+                  borderRadius: 6,
+                  paddingLeft: 3
+                }}
+              />
+            )
+          }
+        </View>
+      </ScrollView>
+    )
+  }
+  const LoanPage = () => {
+    return       <ScrollView
+    contentContainerStyle={styles.scrollView}
+    refreshControl={
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+      />
+    }
+  >
+    <Loan getAllMonthDabitTotal={allLoanData} title="Loan summary" />
+    <ListItem loanData={loanData} />
+    </ScrollView>
+  }
+  // TABS
+  const layout = useWindowDimensions();
+
+  const [index, setIndex] = React.useState(0);
+  const [routes] = React.useState([
+    { key: 'first', title: 'This Month' },
+    { key: 'second', title: 'Total' },
+    { key: 'third', title: 'Loan' }
+  ]);
+
   return (
     <AnimatedColorBox
       flex={1}
@@ -255,99 +462,49 @@ export default function MainScreen({ auth, setAuth }) {
           {
             loading ? <ActivityIndicator style={{ marginTop: 200 }} size="large" color="#2b7fed" />
               : <>
-                {
-                  loadError ? <Text>Something went wrong {error}</Text> :
-                  <>
-                  <VStack
+                <VStack
                   flex={1}
                   space={1}
                   bg={useColorModeValue('warmGray.50', 'primary.900')}
-                  mt="-40px"
+                  mt="-80px"
                   borderTopLeftRadius="20px"
                   borderTopRightRadius="20px"
                   pt="0px"
                 >
-                  <ScrollView
-                    contentContainerStyle={styles.scrollView}
-                    refreshControl={
-                      <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                      />
-                    }
-                  >
-                    <MonthlySummary
-                      yearlyData={total}
-                      total={monthlyTotal}
-                      totalMonthlyDebit={totalMonthlyDebit}
-                      totalMonthlyCredit={totalMonthlyCredit}
-                      totalData={totalData}
-                      monthlyTarget={monthlyTarget}
-                    />
-                    <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
 
-                      <Heading style={{ paddingLeft: 20, fontSize: 18, paddingTop: 20 }}>Total Expenses summary</Heading>
-                      <PiChart totalDebit={totalDebit} />
-                    </View>
-                    <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
-
-                      <Heading style={{ paddingLeft: 20, fontSize: 18 }}>Monthly Income Expenses Savings</Heading>
-                      {
-                        totalDebitCredit?.labels?.length && (
-                          <BarChart
-                            data={totalDebitCredit}
-                            width={370} // from react-native
-                            height={200}
-                            yAxisLabel="k"
-                            horizontalLabelRotation={-10}
-                            yAxisSuffix="tk"
-                            fromZero={true}
-                            showValuesOnTopOfBars={true}
-                            yAxisInterval={1} // optional, defaults to 1
-                            chartConfig={{
-                              backgroundGradientFrom: "#e9f3f5",
-                              backgroundGradientTo: "#e9f3f5",
-                              decimalPlaces: 2, // optional, defaults to 2dp
-                              color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-                              style: {
-                                paddingLeft: 10
-                              },
-                              propsForDots: {
-                                r: "6",
-                                strokeWidth: "2",
-                                stroke: "#fcfcfc"
-                              }
-                            }}
-                            bezier
-                            style={{
-                              marginTop: 30,
-                              borderRadius: 6,
-                              paddingLeft: 3
-                            }}
-                          />
-                        )
-                      }
-                    </View>
-                  </ScrollView>
+                  {
+                    (loadError || !totalBudgetData?.length) ? <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>There are no data found for you.</Text> :
+                      <>
+                        <TabView
+                          navigationState={{ index, routes }}
+                          onIndexChange={setIndex}
+                          renderScene={SceneMap({
+                            first: monthySummary,
+                            second: yearlySummary,
+                            third: LoanPage
+                          })}
+                        />
+                      </>
+                  }
                 </VStack>
-                <View style={{ backgroundColor: '#0b68e0', width: 400, height: 50 }}>
+                <View style={{ backgroundColor: '#0b68e0', width: 400, height: 55 }}>
                   <AddCashModal fetchData={todo} category={category} />
                   <AddBudgetModal />
 
-                  <View>
+                  <View style={{ marginTop: -20 }}>
+                    <Text style={{ color: '#ffff', fontWeight: 'bold', marginLeft: 325 }}>
+                      LOG OUT
+                    </Text>
                     <Fab
                       renderInPortal={false}
-                      style={{ width: 40, height: 40, marginRight: 10 }}
+                      style={{ width: 35, height: 35, marginRight: 10 }}
                       icon={<Icon color="white" as={<AntDesign name="logout" />} size="sm" />}
-                      colorScheme={useColorModeValue('blue', 'darkBlue')}
-                      bg={useColorModeValue('blue.500', 'blue.400')}
+                      colorScheme={useColorModeValue('red', 'darkBlue')}
+                      bg={useColorModeValue('red.500', 'red.400')}
                       onPress={() => logOut(true)}
                     />
                   </View>
                 </View>
-                  </>
-                }
               </>
           }
 

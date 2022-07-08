@@ -32,10 +32,8 @@ const AddBudgetPurpose = () => {
         const data = {
             name: title.toLowerCase(), slug: 'cash', user_id: users?.user?._id
         }
-        console.log(data);
         const result = await axios.post("https://my-cash-app.herokuapp.com/category", data);
         if (result) {
-            console.log(title, result?.data?.user?._id)
             setList(prevList => {
                 return [...prevList, {
                     name: title,
@@ -47,7 +45,6 @@ const AddBudgetPurpose = () => {
     };
 
     const handleDelete = async (index, item) => {
-        console.log(index, item)
        let res = await axios.delete(`https://my-cash-app.herokuapp.com/category/${item?._id}`);
         if(res) {
             setList(prevList => {
@@ -63,7 +60,6 @@ const AddBudgetPurpose = () => {
         let _id = users?.user?._id;
         await axios.get(`https://my-cash-app.herokuapp.com/category/${_id}`)
             .then(async function (response) {
-                console.log(response?.data)
                 response?.data && (
                     setList(response?.data)
                 )
@@ -73,7 +69,6 @@ const AddBudgetPurpose = () => {
             })
             .then(function () {
                 // always executed
-                console.log('jjj')
             });
     };
     useEffect(() => {
