@@ -3,13 +3,12 @@ import { Icon, VStack, useColorModeValue, Fab, Text, ScrollView, Heading } from 
 import { AntDesign } from '@expo/vector-icons'
 import { Dimensions, AsyncStorage, RefreshControl, StyleSheet, View, useWindowDimensions } from 'react-native';
 import AnimatedColorBox from '../components/animated-color-box'
-import TaskList from '../components/task-list'
-import shortid from 'shortid'
 import axios from 'axios';
 import Masthead from '../components/masthead'
 import NavBar from '../components/navbar'
 import AddCashModal from '../components/modal/AddCashModal'
 import AddBudgetModal from '../components/modal/AddBudgetModal'
+import AddLoanModal from '../components/modal/AddLoanModal';
 import Signup from '../components/auth/Signup';
 import PiChart from '../components/piChart';
 import MonthlySummary from '../components/home/MonthlySummary';
@@ -24,6 +23,8 @@ import {
 import colorArray from '../helper/color';
 import { ActivityIndicator, BottomNavigation } from 'react-native-paper';
 import { TabView, SceneMap } from 'react-native-tab-view';
+
+
 const months = ["January", "February", "March", "April", "May", "June", "July", "August", "Sepetember", "October", "November", "December"]
 export default function MainScreen({ auth, setAuth }) {
   const [loading, setLoading] = useState<Boolean>(false);
@@ -33,7 +34,7 @@ export default function MainScreen({ auth, setAuth }) {
   const [totalMonthlyCredit, setCredit] = useState([]);
   const [totalData, setTotalData] = useState({});
   const [loadError, setError] = useState<Boolean>(false);
-  const [category, setCategory] = useState([])
+  const [category, setCategory] = useState({})
   const [refreshing, setRefreshing] = React.useState(false);
   const [total, setTotal] = useState({});
   const [monthlyTotal, setMonthlyTotal] = useState({})
@@ -125,6 +126,20 @@ export default function MainScreen({ auth, setAuth }) {
       // Error retrieving data
     }
   }
+  const prepareCategoryData = (data) => {
+    let loandata = [];
+    let transaction = [];
+
+    data?.map(item => {
+        if(item?.slug === "cash") {
+            transaction.push(item);
+        } else if(item?.slug === "loan") {
+            loandata.push(item);
+        }
+    })
+    setCategory({loandata, transaction});
+
+}
   const getCateGory = async () => {
     const user_data = await AsyncStorage.getItem('auth');
     let users = JSON.parse(user_data);
@@ -132,7 +147,7 @@ export default function MainScreen({ auth, setAuth }) {
     await axios.get(`https://my-cash-app.herokuapp.com/category/${_id}`)
       .then(async function (response) {
         response?.data && (
-          setCategory(response?.data)
+          prepareCategoryData(response?.data)
         )
       }).catch(function (error) {
         // handle error
@@ -432,7 +447,7 @@ export default function MainScreen({ auth, setAuth }) {
     }
   >
     <Loan getAllMonthDabitTotal={allLoanData} title="Loan summary" />
-    <ListItem loanData={loanData} />
+    <ListItem loanData={loanData} getLoan={getLoan} />
     </ScrollView>
   }
   // TABS
@@ -488,16 +503,16 @@ export default function MainScreen({ auth, setAuth }) {
                   }
                 </VStack>
                 <View style={{ backgroundColor: '#0b68e0', width: 400, height: 55 }}>
-                  <AddCashModal fetchData={todo} category={category} />
-                  <AddBudgetModal />
+                  <AddCashModal fetchData={todo} category={category?.transaction} />
+                  <AddLoanModal fetchData={todo} category={category?.loandata} />
 
                   <View style={{ marginTop: -20 }}>
-                    <Text style={{ color: '#ffff', fontWeight: 'bold', marginLeft: 325 }}>
+                    <Text style={{ color: '#ffff', fontWeight: 'bold', marginLeft: 290 }}>
                       LOG OUT
                     </Text>
                     <Fab
                       renderInPortal={false}
-                      style={{ width: 35, height: 35, marginRight: 10 }}
+                      style={{ width: 35, height: 35, marginRight: 50 }}
                       icon={<Icon color="white" as={<AntDesign name="logout" />} size="sm" />}
                       colorScheme={useColorModeValue('red', 'darkBlue')}
                       bg={useColorModeValue('red.500', 'red.400')}

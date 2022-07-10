@@ -3,9 +3,13 @@ import React, { Component } from 'react';
 import { StyleSheet, Text, View, FlatList, Button } from 'react-native';
 import { IconButton, Flex, Center } from 'native-base';
 import IconM from 'react-native-vector-icons/MaterialCommunityIcons';
+import axios from 'axios';
 
-const List = ({ loanData }) => {
-    const onPressLearnMore = () => { }
+const List = ({ loanData, getLoan }) => {
+    const onPressDeletedata = async (data) => {
+        await axios.delete(`https://my-cash-app.herokuapp.com/loan/${data._id}`);
+        getLoan();
+     }
     const renderItem = ({ item }) => (
         <View style={[styles.item, { backgroundColor: item.loan_type === 'lender' ? '#c6cecf' : 'white' }]}>
             <View style={styles.marginLeft}>
@@ -31,7 +35,7 @@ const List = ({ loanData }) => {
                 <IconButton size="sm" colorScheme="trueGray" icon={<IconM
                     name={'trash-can'}
                     style={{ color: 'red', fontSize: 22 }}
-                />} onPress={() => onPressLearnMore()} />
+                />} onPress={() => onPressDeletedata(item)} />
 
                 </Flex>
       
