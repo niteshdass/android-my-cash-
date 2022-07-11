@@ -20,13 +20,15 @@ const AboutScreen = ({ getAllMonthDabitTotal, title }) => {
 
   return (
     <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
-      <Heading style={{ paddingLeft: 20, fontSize: 18, paddingTop: 20 }}>
+      <Heading style={{ paddingLeft: 10, fontSize: 18, paddingTop: 20 }}>
         <IconM
           name={'decagram'}
           style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
         /> {title}
       </Heading>
-      <BarChart
+     {
+       getAllMonthDabitTotal.labels?.length ?
+        <BarChart
         data={getAllMonthDabitTotal}
         width={Dimensions.get("window").width} // from react-native
         height={220}
@@ -56,6 +58,8 @@ const AboutScreen = ({ getAllMonthDabitTotal, title }) => {
           borderRadius: 16
         }}
       />
+       : <Text>Nothing found for you!</Text>
+     }
     </View>
   )
 }

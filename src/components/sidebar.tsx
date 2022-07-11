@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import {
   HStack,
   VStack,
@@ -16,6 +16,7 @@ import { Feather } from '@expo/vector-icons'
 import MenuButton from './menu-button'
 
 const Sidebar = (props: DrawerContentComponentProps) => {
+  const [userdata, setUser] = useState({});
   const { state, navigation } = props
   const currentRoute = state.routeNames[state.index]
 
@@ -40,6 +41,17 @@ const Sidebar = (props: DrawerContentComponentProps) => {
   // const handleLogout = useCallback(async () => {
   //   navigation.navigate('Logout')
   // }, [navigation])
+  // const getUser = async () => {
+  //   const value = await AsyncStorage.getItem('auth');
+  //   if (value !== null) {
+  //     // We have data!!
+  //     let data = JSON.parse(value);
+  //     console.log({data});
+  //     setUser(data?.user);
+  //   }
+  // }
+  // useEffect(()=> {
+  // }, [])
 
   return (
     <AnimatedColorBox
@@ -64,7 +76,7 @@ const Sidebar = (props: DrawerContentComponentProps) => {
           />
         </HStack>
         <Avatar
-          source={require('../assets/profile.png')}
+          source={require('../assets/profile1.png')}
           size="xl"
           borderRadius={100}
           mb={6}
@@ -74,28 +86,28 @@ const Sidebar = (props: DrawerContentComponentProps) => {
           borderWidth={3}
         />
         <Heading mb={4} size="xl">
-          Bindaas nitesh
+          Wellcome !!
         </Heading>
         <MenuButton
           active={currentRoute === 'Main'}
           onPress={handlePressMenuMain}
           icon="inbox"
         >
-          Tasks
+          Dashboard
         </MenuButton>
-        <MenuButton
+        {/* <MenuButton
           active={currentRoute === 'About'}
           onPress={handlePressMenuAbout}
           icon="info"
         >
           About
-        </MenuButton>
+        </MenuButton> */}
         <MenuButton
           active={currentRoute === 'Loan'}
           onPress={handlePressMenuoan}
           icon="info"
         >
-          Cash Manage
+          Transactions
         </MenuButton>
         <MenuButton
           active={currentRoute === 'Settings'}

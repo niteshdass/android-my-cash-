@@ -18,8 +18,8 @@ const SettingScreen = () => {
             w="full"
         >
             <Masthead
-                title="Add costing purpose"
-                image={require('../assets/about-masthead.png')}
+                title="App settings"
+                image={require('../assets/trans.jpg')}
             >
                 <Navbar />
             </Masthead>

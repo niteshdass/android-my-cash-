@@ -11,9 +11,9 @@ import {
 } from "react-native-chart-kit";
 
 export default function MonthlySummary({
-    yearlyData,
-    total,
-    totalMonthlyDebit,
+    yearlyData = {},
+    total = {},
+    totalMonthlyDebit = {},
     totalMonthlyCredit,
     totalData,
     monthlyTarget
@@ -33,14 +33,14 @@ export default function MonthlySummary({
             return (<Text style={{ color: 'red' }}>You crossed your budget limit !!</Text>)
         }
     }
-   
+
     return (
         <>
             {
                 Object.keys(yearlyData).length > 0 ?
                     <>
                         <View style={{ backgroundColor: '#e9f3f5', height: 300, paddingTop: 10, margin: 10 }}>
-                            <Heading style={{ paddingLeft: 20, fontSize: 18 }}>
+                            <Heading style={{ paddingLeft: 10, fontSize: 18 }}>
                                 <IconM
                                     name={'decagram'}
                                     style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
@@ -68,11 +68,17 @@ export default function MonthlySummary({
 
                         <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
 
-                            <Heading style={{ paddingLeft: 30, fontSize: 18, marginTop: 20 }}>
+                            <Heading style={{ paddingLeft: 10, fontSize: 18, marginTop: 20 }}>
                                 <IconM
                                     name={'decagram'}
                                     style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
-                                /> Income Expenses Savings
+                                /> Income <IconM
+                                    name={'decagram'}
+                                    style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
+                                /> Expenses <IconM
+                                    name={'decagram'}
+                                    style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
+                                />Savings
                             </Heading>
 
                             {
@@ -81,16 +87,15 @@ export default function MonthlySummary({
                                         data={totalData}
                                         width={370} // from react-native
                                         height={200}
-                                        yAxisLabel="k"
+                                        yAxisLabel="$"
                                         horizontalLabelRotation={-10}
-                                        yAxisSuffix="tk"
                                         fromZero={true}
                                         showValuesOnTopOfBars={true}
                                         yAxisInterval={1} // optional, defaults to 1
                                         chartConfig={{
                                             backgroundGradientFrom: "#e9f3f5",
                                             backgroundGradientTo: "#e9f3f5",
-                                            decimalPlaces: 2, // optional, defaults to 2dp
+                                            decimalPlaces: 0, // optional, defaults to 2dp
                                             color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                                             labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
                                             style: {
@@ -113,22 +118,71 @@ export default function MonthlySummary({
                             }
                         </View>
                         <View style={{ backgroundColor: '#e9f3f5', height: 400, margin: 10 }}>
-                            <Heading style={{ paddingLeft: 30, fontSize: 18, marginTop: 20 }}>
+                            <Heading style={{ paddingLeft: 10, fontSize: 18, marginTop: 20 }}>
                                 <IconM
                                     name={'decagram'}
                                     style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
                                 /> Expenses target (Total/monthly)
                             </Heading>
 
-                            {
+                            <BarChart
+                                style={{
+                                    marginTop: 30,
+                                    paddingLeft: 3,
+                                    borderRadius: 6
+                                }}
+                                data={{
+                                    labels: ["Total target", "Total cost", "Monthly Target", "Monthly cost"],
+                                    datasets: [
+                                        {
+                                            // data:[100,200,300,400]
+                                            data: [monthlyTarget?.totalTarget || 0, yearlyData?.dTotal || 0, monthlyTarget?.current_total || 0, total?.dTotal || 0]
+                                        }
+                                    ]
+                                }}
+                                width={370}
+                                height={200}
+                                yAxisInterval={1}
+                                horizontalLabelRotation={-10}
+                                showValuesOnTopOfBars={true}
+                                fromZero={true}
+                                yAxisLabel="$"
+                                chartConfig={{
+                                    backgroundGradientFrom: "#e9f3f5",
+                                    backgroundGradientTo: "#e9f3f5",
+                                    decimalPlaces: 0, // optional, defaults to 2dp
+                                    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+                                    style: {
+                                        paddingLeft: 10
+                                    },
+                                    propsForDots: {
+                                        r: "6",
+                                        strokeWidth: "2",
+                                        stroke: "#fcfcfc"
+                                    }
+                                }}
+                            />
+                            <View style={{ backgroundColor: '#9cc3d6' }}>
+                                <Text style={{ marginTop: 10, fontSize: 14 }}> <Icon color="red" as={<AntDesign name="inbox" />} size="sm" />
+                                    Your Yearly costing status is <Text style={{ color: 'yellow' }}>{
+                                        monthlyTarget?.totalTarget || 0 < yearlyData?.dTotal || 0 ? 'Expensive' : 'Cheep'
+                                    }</Text>
+                                </Text>
+                                <Text style={{ marginTop: 10, fontSize: 14 }}> <Icon color="red" as={<AntDesign name="inbox" />} size="sm" />
+                                    {monthlyCostingStatusCalculation(date?.getDate(), monthlyTarget?.current_total || 0, total?.dTotal || 0)}
+                                </Text>
+                            </View>
+                            {/* {
                                 monthlyTarget?.totalTarget && yearlyData?.dTotal && total?.dTotal && (
                                     <>
                                         <BarChart
                                             data={{
-                                                labels: ["Yearly target", "Yearly cost", "Monthly Target", "Monthly cost"],
+                                                labels: ["Total target", "Total cost", "Monthly Target", "Monthly cost"],
                                                 datasets: [
                                                     {
-                                                        data: [monthlyTarget?.totalTarget, yearlyData?.dTotal, monthlyTarget?.current_total, total?.dTotal]
+                                                        data:[100,200,300,400]
+                                                        // data: [monthlyTarget?.totalTarget, yearlyData?.dTotal, monthlyTarget?.current_total, total?.dTotal]
                                                     }
                                                 ]
                                             }}
@@ -174,7 +228,7 @@ export default function MonthlySummary({
                                         </View>
                                     </>
                                 )
-                            }
+                            } */}
                         </View>
                     </> :
                     <>

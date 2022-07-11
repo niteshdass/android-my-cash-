@@ -14,6 +14,8 @@ const RegistrationScreen = ({ callBack }) => {
   const [signin, setSignin] = useState(false);
 
   const [email, setEmail] = useState("");
+  const [error, setError] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [firstname, setFirstname] = useState("");
   const [showEmailError, setShowEmailError] = useState("");
@@ -55,25 +57,42 @@ const RegistrationScreen = ({ callBack }) => {
     }
   }
 
+  function containsNumber(str) {
+    return /\d/.test(str);
+  }
+
   const submitPressed = async () => {
-    setShowEmailError(email.length < 4);
-    setShowPasswordError(password.length < 4);
+    let regex = /([a-zA-Z0-9]+)([\_\.\-{1}])?([a-zA-Z0-9]+)\@([a-zA-Z0-9]+)([\.])([a-zA-Z\.]+)/g
+    setShowEmailError(!email.match(regex));
+    setShowPasswordError(password.length < 7 || !containsNumber(password));
+    console.log(email.match(regex), 'regex');
     setShowFirstnameError(firstname.length < 4);
-    if (firstname?.length && password?.length && email?.length) {
+    if (firstname?.length && password?.length > 7 && email.match(regex) && containsNumber(password)) {
+      setLoading(true);
+      setError(false);
       const data = {
         email, password, name: firstname
       }
-      const result = await axios.post("https://my-cash-app.herokuapp.com/api/signup", data);
-      if (result) {
-        try {
-          await AsyncStorage.setItem(
-            'auth',
-            JSON.stringify(result.data)
-          );
-          callBack(true);
-        } catch (error) {
-          // Error saving data
+      try {
+        const result = await axios.post("https://my-cash-app.herokuapp.com/api/signup", data);
+        setLoading(false);
+        if (result?.data?.user) {
+          try {
+            await AsyncStorage.setItem(
+              'auth',
+              JSON.stringify(result.data)
+            );
+            callBack(true);
+          } catch (error) {
+            // Error saving data
+          }
+        } else {
+          setError(true);
         }
+      } catch {
+        setError(true);
+        setLoading(false);
+
       }
     }
 
@@ -87,6 +106,10 @@ const RegistrationScreen = ({ callBack }) => {
 
   const changeLayout = () => {
     setSignin(!signin);
+  }
+
+  const getLabel = (data, loading) => {
+    return loading ? `${data}...` : data;
   }
 
   return (
@@ -137,8 +160,9 @@ const RegistrationScreen = ({ callBack }) => {
                 label="Email"
                 placeholder="Enter your email"
               />
+                 {showError(showEmailError, 'Please enter a valid email.')}
             </View>
-            {showError(showEmailError, 'Please enter a password.')}
+         
             <View style={styles.inputTextWrapper}>
               <Input
                 onChangeText={text => setPassword(text)}
@@ -146,16 +170,18 @@ const RegistrationScreen = ({ callBack }) => {
                 iconName="lock-check"
                 returnKeyType="next"
                 label="Password"
-                placeholder="Enter your password"
+                placeholder="Password length must be 8 digit"
               />
               {
-                showError(showPasswordError, 'Please enter a password.')
+                showError(showPasswordError, 'Password length must be 8 digit and must contain a number.')
               }
             </View>
 
-
+            {
+                showError(error, 'Email is already taken !')
+              }
             <View style={styles.btnContainer}>
-              <Button title="Register" onPress={submitPressed} />
+              <Button title={getLabel("Register", loading)} onPress={submitPressed} />
             </View>
             <View style={styles.btnContainer}>
               <Button title="Signin" onPress={changeLayout} />

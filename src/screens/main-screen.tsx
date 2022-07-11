@@ -86,6 +86,7 @@ export default function MainScreen({ auth, setAuth }) {
 
   const loadTotalBudgetDtat = async () => {
     setLoading(true);
+    setError(false);
     const d = new Date();
     let user_data = await AsyncStorage.getItem('auth');
     user_data = JSON.parse(user_data);
@@ -93,12 +94,12 @@ export default function MainScreen({ auth, setAuth }) {
       .then(async function (response) {
         prepareBudgetsdata(response.data.reverse());
         getEachMonthCostTotal(response.data);
+        setLoading(false);
       }).catch(function (error) {
         setError(true);
         setLoading(false);
       })
       .then(function () {
-        setLoading(false);
       });
   }
 
@@ -112,9 +113,12 @@ export default function MainScreen({ auth, setAuth }) {
         let data = JSON.parse(value);
         setUser(data?.user);
         setAuth(true);
+        setLoading(false);
       }
     } catch (error) {
       // Error retrieving data
+      setLoading(false);
+      setError(true);
     }
   }
   const logOut = async () => {
@@ -131,26 +135,30 @@ export default function MainScreen({ auth, setAuth }) {
     let transaction = [];
 
     data?.map(item => {
-        if(item?.slug === "cash") {
-            transaction.push(item);
-        } else if(item?.slug === "loan") {
-            loandata.push(item);
-        }
+      if (item?.slug === "cash") {
+        transaction.push(item);
+      } else if (item?.slug === "loan") {
+        loandata.push(item);
+      }
     })
-    setCategory({loandata, transaction});
+    setCategory({ loandata, transaction });
 
-}
+  }
   const getCateGory = async () => {
     const user_data = await AsyncStorage.getItem('auth');
     let users = JSON.parse(user_data);
     let _id = users?.user?._id;
+    setError(false);
+    setLoading(true);
     await axios.get(`https://my-cash-app.herokuapp.com/category/${_id}`)
       .then(async function (response) {
         response?.data && (
           prepareCategoryData(response?.data)
-        )
+        );
+        setLoading(false)
       }).catch(function (error) {
         // handle error
+        setLoading(false);
         setError(true);
       })
       .then(function () {
@@ -209,10 +217,6 @@ export default function MainScreen({ auth, setAuth }) {
         const sum = result.reduce((accumulator, object) => {
           return accumulator + object.amount;
         }, 0);
-        // output.push({
-        //   month: months[data[i].month - 1],
-        //   total: sum
-        // });
         localMonths.push(months[data[i].month - 1]);
         localTotals.push(sum);
 
@@ -256,16 +260,16 @@ export default function MainScreen({ auth, setAuth }) {
     for (i = 0; i < l; i++) {
       data[i].id = data[i]?._id;
       localLoanDtat.push(data[i]);
-        if (flags[data[i].loan_type]) continue;
-          flags[data[i].loan_type] = true;
-          const result = data.filter(budget => budget.loan_type === data[i].loan_type);
-          const sum = result.reduce((accumulator, object) => {
-            return accumulator + object.amount;
-          }, 0);  
-        localMonths.push(data[i].loan_type);
-        localTotals.push(sum);
-      }
-      setLoanData(localLoanDtat);
+      if (flags[data[i].loan_type]) continue;
+      flags[data[i].loan_type] = true;
+      const result = data.filter(budget => budget.loan_type === data[i].loan_type);
+      const sum = result.reduce((accumulator, object) => {
+        return accumulator + object.amount;
+      }, 0);
+      localMonths.push(data[i].loan_type);
+      localTotals.push(sum);
+    }
+    setLoanData(localLoanDtat);
     setTotalLoanData({
       labels: localMonths,
       datasets: [
@@ -279,7 +283,7 @@ export default function MainScreen({ auth, setAuth }) {
   const getLoan = async () => {
     const user_data = await AsyncStorage.getItem('auth');
     let data = JSON.parse(user_data);
-    await axios.get(`https://my-cash-app.herokuapp.com/loan`)
+    await axios.get(`https://my-cash-app.herokuapp.com/loan/${data?.user?._id}`)
       .then(async function (response) {
         prepareLoanData(response.data.reverse());
       }).catch(function (error) {
@@ -303,12 +307,12 @@ export default function MainScreen({ auth, setAuth }) {
 
   const getMonthTarget = async () => {
     const d = new Date();
-    // let year = d.getFullYear();
+    let year = d.getFullYear();
     let month = d.getMonth() + 1;
-    // const user_data = await AsyncStorage.getItem('auth'); 
+    const user_data = await AsyncStorage.getItem('auth'); 
     // We have data!!
-    // let data = JSON.parse(user_data);
-    await axios.get(`https://my-cash-app.herokuapp.com/target/`)
+    let data = JSON.parse(user_data);
+    await axios.get(`https://my-cash-app.herokuapp.com/target/${data?.user?._id}`)
       .then(async function (response) {
         let totalTarget = 0;
         let current_total = 0;
@@ -330,7 +334,7 @@ export default function MainScreen({ auth, setAuth }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    getAuthUser()
+    getAuthUser();
     loadTotalBudgetDtat();
     getCateGory();
     getLoan();
@@ -373,11 +377,11 @@ export default function MainScreen({ auth, setAuth }) {
           />
         }
       >
-        <Loan getAllMonthDabitTotal={getAllMonthDabitTotal} title="Each month expenses"  />
+        <Loan getAllMonthDabitTotal={getAllMonthDabitTotal} title="Each months expenses" />
 
         <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
 
-          <Heading style={{ paddingLeft: 20, fontSize: 18, paddingTop: 20 }}>
+          <Heading style={{ paddingLeft: 10, fontSize: 18, paddingTop: 20 }}>
             <IconM
               name={'decagram'}
               style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
@@ -390,11 +394,17 @@ export default function MainScreen({ auth, setAuth }) {
         </View>
         <View style={{ backgroundColor: '#e9f3f5', height: 300, margin: 10 }}>
 
-          <Heading style={{ paddingLeft: 20, fontSize: 18 }}>
+          <Heading style={{ paddingLeft: 10, fontSize: 18 }}>
             <IconM
               name={'decagram'}
               style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
-            /> Monthly Income Expenses Savings
+            /> Income <IconM
+              name={'decagram'}
+              style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
+            />Expenses <IconM
+              name={'decagram'}
+              style={{ color: '#7978B5', fontSize: 18, marginRight: 10 }}
+            />Savings
           </Heading>
           {
             totalDebitCredit?.labels?.length && (
@@ -437,27 +447,27 @@ export default function MainScreen({ auth, setAuth }) {
     )
   }
   const LoanPage = () => {
-    return       <ScrollView
-    contentContainerStyle={styles.scrollView}
-    refreshControl={
-      <RefreshControl
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-      />
-    }
-  >
-    <Loan getAllMonthDabitTotal={allLoanData} title="Loan summary" />
-    <ListItem loanData={loanData} getLoan={getLoan} />
+    return <ScrollView
+      contentContainerStyle={styles.scrollView}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+        />
+      }
+    >
+      <Loan getAllMonthDabitTotal={allLoanData} title="Loan summary" />
+      <ListItem loanData={loanData} getLoan={getLoan} />
     </ScrollView>
   }
   // TABS
   const layout = useWindowDimensions();
-
+  const today = new Date();
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
-    { key: 'first', title: 'This Month' },
+    { key: 'first', title: months[today.getMonth()] },
     { key: 'second', title: 'Total' },
-    { key: 'third', title: 'Loan' }
+    { key: 'third', title: 'Borrow' }
   ]);
 
   return (
@@ -469,8 +479,8 @@ export default function MainScreen({ auth, setAuth }) {
       {
         auth ? <>
           <Masthead
-            title="What's up, Bindaas!"
-            image={require('../assets/masthead.png')}
+            title={`What's up, ${user?.name} !`}
+            image={require('../assets/header.jpg')}
           >
             <NavBar />
           </Masthead>
@@ -488,18 +498,18 @@ export default function MainScreen({ auth, setAuth }) {
                 >
 
                   {
-                    (loadError || !totalBudgetData?.length) ? <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>There are no data found for you.</Text> :
-                      <>
-                        <TabView
-                          navigationState={{ index, routes }}
-                          onIndexChange={setIndex}
-                          renderScene={SceneMap({
-                            first: monthySummary,
-                            second: yearlySummary,
-                            third: LoanPage
-                          })}
-                        />
-                      </>
+                    // (loadError || !totalBudgetData?.length) ? <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>There are no data found for you.</Text> :
+                    <>
+                      <TabView
+                        navigationState={{ index, routes }}
+                        onIndexChange={setIndex}
+                        renderScene={SceneMap({
+                          first: monthySummary,
+                          second: yearlySummary,
+                          third: LoanPage
+                        })}
+                      />
+                    </>
                   }
                 </VStack>
                 <View style={{ backgroundColor: '#0b68e0', width: 400, height: 55 }}>

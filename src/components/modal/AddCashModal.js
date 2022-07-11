@@ -92,7 +92,7 @@ const AddCashModal = ({ fetchData, category }) => {
                                 name="calendar-heart"
                                 style={{ color: '#7978B5', fontSize: 22, marginRight: 20 }}
                             />
-                            List your debit/credit
+                            List your transaction
                         </Heading>
                     </Modal.Header>
                     <Modal.Body>

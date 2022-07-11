@@ -12,6 +12,7 @@ const Signin = ({ callBack, auth }) => {
   const passwordInputRef = React.createRef();
   const firstnameInputRef = React.createRef();
   const [signin, setSignin] = useState(false);
+  const [error, setError] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showEmailError, setShowEmailError] = useState("");
@@ -19,27 +20,34 @@ const Signin = ({ callBack, auth }) => {
   const [loading, setLoading] = useState(false);
 
   const submitPressed = async () => {
-    setShowEmailError(email.length < 4);
+    let regex = /([a-zA-Z0-9]+)([\_\.\-{1}])?([a-zA-Z0-9]+)\@([a-zA-Z0-9]+)([\.])([a-zA-Z\.]+)/g
+    setShowEmailError(!email.match(regex));
     setShowPasswordError(password.length < 4);
-    if (password?.length && email?.length) {
+    if (password?.length && email.match(regex)) {
       setLoading(true);
       const data = {
         email, password
       }
-      const result = await axios.post("https://my-cash-app.herokuapp.com/api/signin", data);
-      if (result) {
-        setLoading(false)
-        try {
-          await AsyncStorage.setItem(
-            'auth',
-            JSON.stringify(result.data)
-          );
-          auth(true);
-        } catch (error) {
-          // Error saving data
+      try {
+        const result = await axios.post("https://my-cash-app.herokuapp.com/api/signin", data);
+        console.log(result, 'jjj')
+        if (result) {
+          setLoading(false)
+          try {
+            await AsyncStorage.setItem(
+              'auth',
+              JSON.stringify(result.data)
+            );
+            auth(true);
+          } catch (error) {
+            // Error saving data
+          }
         }
+        setLoading(false);
+      } catch {
+        setError(true);
+        setLoading(false);
       }
-      setLoading(false);
     }
     Keyboard.dismiss();
   }
@@ -84,10 +92,10 @@ const Signin = ({ callBack, auth }) => {
             iconName="email-check"
             returnKeyType="next"
             label="Email"
-            placeholder="Enter your email"
+            placeholder="Enter your valid email"
           />
+          {showError(showEmailError, 'Enter your valid email.')}
         </View>
-        {showError(showEmailError, 'Please enter a password.')}
         <View style={styles.inputTextWrapper}>
           <Input
             onChangeText={text => setPassword(text)}
@@ -101,12 +109,14 @@ const Signin = ({ callBack, auth }) => {
             showError(showPasswordError, 'Please enter a password.')
           }
         </View>
-
+        {
+          showError(error, 'Something went wrong !!')
+        }
         <View style={styles.btnContainer}>
           <Button title={getTitle()} onPress={submitPressed} />
         </View>
         <View style={styles.btnContainer}>
-          <Button  title="Registration" onPress={callBack} />
+          <Button title="Registration" onPress={callBack} />
         </View>
 
       </View>

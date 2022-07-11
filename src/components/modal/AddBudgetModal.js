@@ -12,33 +12,44 @@ import {
     Heading
 } from 'native-base';
 import { AntDesign } from '@expo/vector-icons'
-import { TextInput, Alert, View, Text, TouchableOpacity } from 'react-native';
+import { TextInput, Alert, View, Text, TouchableOpacity, AsyncStorage } from 'react-native';
 import Input from '../form/Input';
 import IconM from 'react-native-vector-icons/MaterialCommunityIcons';
 
 
 
-const AddBudgetModal = () => {
+const AddBudgetModal = ({ marginTop = -20 }) => {
     const [budgetModal, setBudgetModal] = useState(false);
     const [target_ammount, setTarget] = useState('');
     const [month, setMonth] = useState('');
 
     const onSubmitTarget = async () => {
-        let target = {
-            target_ammount,
-            month
-        }
-        const result = await axios.post("https://nitesh-cash-api.herokuapp.com/target/", target);
-        if (result) {
-            setBudgetModal(false)
-        } else {
+        const d = new Date();
+        let year = d.getFullYear();
+        const user_data = await AsyncStorage.getItem('auth'); 
+        // We have data!!
+        let data = JSON.parse(user_data);
+        if(year && target_ammount && month && data?.user?._id) {
+            let target = {
+                target_ammount,
+                month,
+                year,
+                user_id: data?.user?._id
+            }
+            const result = await axios.post("https://my-cash-app.herokuapp.com/target/", target);
+            if (result) {
+                setBudgetModal(false)
+            } else {
+                Alert.alert('There are some issue')
+            }
+        }else {
             Alert.alert('There are some issue')
         }
     }
 
     return (
         <>
-            <View style={{ marginTop: -20 }}>
+            <View style={{ marginTop }}>
                 <Text style={{ color: '#ffff', fontWeight: 'bold', marginLeft: 155 }}>
                     ADD BUDGET
                 </Text>
