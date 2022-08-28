@@ -8,7 +8,7 @@ import {
     Heading
 } from 'native-base';
 import { AntDesign } from '@expo/vector-icons'
-import { SafeAreaView, View, StyleSheet, Text } from 'react-native';
+import { SafeAreaView, View, StyleSheet, Text, AsyncStorage } from 'react-native';
 
 const ReadBudgetModal = () => {
     const [monthModal, setMontModal] = useState(false);
@@ -17,11 +17,19 @@ const ReadBudgetModal = () => {
 
 
     const fetchMonthTarget = async () => {
-        const resp = await fetch("https://nitesh-cash-api.herokuapp.com/target/");
-        const data = await resp.json();
-        if (data?.length) {
-            setMonthTarget(data.reverse());
-        }
+        const user_data = await AsyncStorage.getItem('auth'); 
+        // We have data!!
+        let userData = JSON.parse(user_data);    
+        await axios.get(`https://my-cash-app.herokuapp.com/target/${userData?.user?._id}`)
+        .then(async function (response) {
+            console.log(response?.data, 'jj')
+          setMonthTarget(response?.data?.reverse());
+        }).catch(function (error) {
+            setMonthTarget([]);
+        })
+        .then(function () {
+          // always executed
+        });
     }
 
 
@@ -30,16 +38,19 @@ const ReadBudgetModal = () => {
     }, []);
     return (
         <>
-
-            <Fab
-                renderInPortal={false}
-                style={{ width: 50, height: 50, marginRight: 170 }}
-                icon={<Icon color="white" as={<AntDesign name="eye" />} size="sm" />}
-                colorScheme={useColorModeValue('blue', 'darkBlue')}
-                bg={useColorModeValue('primary.500', 'primary.400')}
-                onPress={() => setMontModal(true)}
-            />
-
+            <View style={{ marginTop: -20 }}>
+            <Text style={{ color: '#ffff', fontWeight: 'bold', marginLeft: 300 }}>
+                    BUDGET
+                </Text>
+                <Fab
+                    renderInPortal={false}
+                    style={{ width: 35, height: 35, marginRight: 40 }}
+                    icon={<Icon color="white" as={<AntDesign name="eye" />} size="sm" />}
+                    colorScheme={useColorModeValue('blue', 'darkBlue')}
+                    bg={useColorModeValue('primary.500', 'primary.400')}
+                    onPress={() => setMontModal(true)}
+                />
+            </View>
             <Modal isOpen={monthModal} onClose={() => setMontModal(false)}>
                 <Modal.Content maxH="412">
                     <Modal.Header>

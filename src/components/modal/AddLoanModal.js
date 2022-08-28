@@ -18,7 +18,7 @@ import { TextInput, Alert, AsyncStorage, View, Text, TouchableOpacity } from 're
 import Input from '../form/Input';
 
 
-const AddCashModal = ({ fetchData, category }) => {
+const AddLoanModal = ({ fetchData, category }) => {
     const [addModal, setAddModal] = useState(false);
     const [budget_type, setType] = useState('');
     const [purpose, setPurpose] = useState('');
@@ -50,10 +50,10 @@ const AddCashModal = ({ fetchData, category }) => {
             let month = d.getMonth() + 1;
             let users = JSON.parse(user_data);
             const budget = {
-                amount, purpose, budget_type, date, note, user_id: users?.user?._id, year, month
+                amount, name: purpose, loan_type: budget_type, date, refound_date:note, user_id: users?.user?._id
             }
             setAddModal(!addModal);
-            const result = await axios.post("https://my-cash-app.herokuapp.com/budget/create", budget);
+            const result = await axios.post("https://my-cash-app.herokuapp.com/loan/", budget);
             if (result) {
                 fetchData();
                 setAddModal(!addModal);
@@ -70,13 +70,13 @@ const AddCashModal = ({ fetchData, category }) => {
     }
     return (
         <>
-            <View style={{ marginTop: 35 }}>
-                <Text style={{color: '#ffff', fontWeight: 'bold', marginLeft: 15}}>
-                    TRANSACTION
+            <View style={{ marginTop: -20 }}>
+                <Text style={{color: '#ffff', fontWeight: 'bold',  marginLeft: 162}}>
+                    BORROW
                 </Text>
                 <Fab
                     renderInPortal={false}
-                    style={{ width: 35, height: 35, marginRight: 300 }}
+                    style={{ width: 35, height: 35, marginRight: 175 }}
                     icon={<Icon color="white" as={<AntDesign name="plus" />} size="sm" />}
                     colorScheme={useColorModeValue('blue', 'darkBlue')}
                     bg={useColorModeValue('blue.500', 'blue.400')}
@@ -92,7 +92,7 @@ const AddCashModal = ({ fetchData, category }) => {
                                 name="calendar-heart"
                                 style={{ color: '#7978B5', fontSize: 22, marginRight: 20 }}
                             />
-                            List your transaction
+                            Add Borrow
                         </Heading>
                     </Modal.Header>
                     <Modal.Body>
@@ -101,7 +101,7 @@ const AddCashModal = ({ fetchData, category }) => {
                                 marginVertical: 5,
                                 fontSize: 14,
                                 color: '#BABBC3',
-                            }}>Purpose</Text>
+                            }}>Borrower</Text>
                             <View
                                 style={[
                                     {
@@ -121,7 +121,7 @@ const AddCashModal = ({ fetchData, category }) => {
                                     name="calendar-heart"
                                     style={{ color: '#7978B5', fontSize: 22, marginRight: 10 }}
                                 />
-                                <Select selectedValue={purpose} minWidth="217" accessibilityLabel="Choose purpose" placeholder="Choose Service" _selectedItem={{
+                                <Select selectedValue={purpose} minWidth="217" accessibilityLabel="Select borrower" placeholder="Select borrower" _selectedItem={{
                                     bg: "#F3F4FB",
                                     endIcon: <CheckIcon size="5" />
                                 }} mt={1} onValueChange={itemValue => setPurpose(itemValue)}>
@@ -143,7 +143,7 @@ const AddCashModal = ({ fetchData, category }) => {
                                 marginVertical: 5,
                                 fontSize: 14,
                                 color: '#BABBC3',
-                            }}>Purpose</Text>
+                            }}>Borrow type</Text>
                             <View
                                 style={[
                                     {
@@ -163,12 +163,12 @@ const AddCashModal = ({ fetchData, category }) => {
                                     name="calendar-heart"
                                     style={{ color: '#7978B5', fontSize: 22, marginRight: 10 }}
                                 />
-                                <Select selectedValue={budget_type} minWidth="217" accessibilityLabel="Choose Service" placeholder="Choose Service" _selectedItem={{
+                                <Select selectedValue={budget_type} minWidth="217" accessibilityLabel="Choose type" placeholder="Choose type" _selectedItem={{
                                     bg: "teal.600",
                                     endIcon: <CheckIcon size="5" />
                                 }} mt={1} onValueChange={itemValue => setType(itemValue)}>
-                                    <Select.Item label="Credit" value="credit" />
-                                    <Select.Item label="Debit" value="debit" />
+                                    <Select.Item label="Lender" value="lender" />
+                                    <Select.Item label="Borrower" value="borrower" />
                                 </Select>
                             </View>
                             <Input
@@ -234,4 +234,4 @@ const AddCashModal = ({ fetchData, category }) => {
     )
 }
 
-export default AddCashModal;
+export default AddLoanModal;
